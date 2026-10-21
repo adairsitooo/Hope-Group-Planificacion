@@ -1,4 +1,3 @@
-
 (() => {
   "use strict";
 
@@ -36,6 +35,10 @@
   let currentKind = "plan";
   let logoData = localStorage.getItem(STORAGE.logo) || "";
 
+  if (!Array.isArray(roles)) roles = [...defaultRoles];
+  if (!Array.isArray(plans)) plans = [];
+  if (!Array.isArray(templates)) templates = [];
+
   function persist() {
     localStorage.setItem(STORAGE.roles, JSON.stringify(roles));
     localStorage.setItem(STORAGE.plans, JSON.stringify(plans));
@@ -54,6 +57,7 @@
 
   function today() {
     const date = new Date();
+
     return [
       date.getFullYear(),
       String(date.getMonth() + 1).padStart(2, "0"),
@@ -62,8 +66,8 @@
   }
 
   function newId() {
-    return crypto.randomUUID
-      ? crypto.randomUUID()
+    return globalThis.crypto?.randomUUID
+      ? globalThis.crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
 
@@ -85,42 +89,53 @@
     if (name === "roles") renderCatalog();
   }
 
+  // LOGO
+
+  function getLogoSource() {
+    if (logoData) return logoData;
+
+    try {
+      return new URL("recursos/logo.PNG", window.location.href).href;
+    } catch {
+      return "recursos/logo.PNG";
+    }
+  }
+
   function updateLogo() {
     const image = $("brandLogo");
     if (!image) return;
 
-    if (logoData) {
-      image.src = logoData;
-      image.style.display = "block";
-    } else {
-      image.src = "recursos/logo.PNG";
-      image.style.display = "";
-    }
+    image.src = getLogoSource();
+    image.style.display = "block";
 
     image.onerror = () => {
-      if (!logoData) image.style.display = "none";
+      image.style.display = "none";
     };
   }
 
-  // ROLES DEL PROGRAMA
+  // ADMINISTRACIÓN DE ROLES
 
   function refreshRoleSelect(select, selected) {
+    if (!select) return;
+
     select.innerHTML = "";
 
-    const list = roles.length ? roles : ["Otro"];
+    const availableRoles = roles.length ? roles : [];
 
-    list.forEach((role) => {
+    availableRoles.forEach((role) => {
       const option = document.createElement("option");
       option.value = role;
       option.textContent = role;
       select.appendChild(option);
     });
 
-    if (selected && !list.includes(selected)) {
+    // Mantiene roles antiguos de planificaciones guardadas
+    // aunque ya no estén en el catálogo.
+    if (selected && !availableRoles.includes(selected)) {
       const option = document.createElement("option");
       option.value = selected;
-      option.textContent = selected;
-      select.insertBefore(option, select.firstChild);
+      option.textContent = `${selected} (fuera del catálogo)`;
+      select.appendChild(option);
     }
 
     const addOption = document.createElement("option");
@@ -128,103 +143,156 @@
     addOption.textContent = "＋ Crear rol…";
     select.appendChild(addOption);
 
-    select.value = selected && (
-      list.includes(selected) ||
-      [...select.options].some((option) => option.value === selected)
-    ) ? selected : list[0];
+    if (selected && [...select.options].some(
+      (option) => option.value === selected
+    )) {
+      select.value = selected;
+    } else if (availableRoles.length) {
+      select.value = availableRoles[0];
+    } else {
+      select.value = "__add__";
+    }
   }
 
   function numberRows() {
-    [...$("roleRows").children].forEach((row, index) => {
-      row.querySelector(".row-number").textContent =
-        `ROL ${String(index + 1).padStart(2, "0")}`;
+    const root = $("roleRows");
+    if (!root) return;
+
+    [...root.children].forEach((row, index) => {
+      const number = row.querySelector(".row-number");
+      if (number) {
+        number.textContent = `ROL ${String(index + 1).padStart(2, "0")}`;
+      }
     });
+  }
+
+  function addRole(name) {
+    const clean = String(name || "").trim();
+
+    if (!clean) return false;
+
+    const duplicate = roles.some(
+      (role) => role.toLowerCase() === clean.toLowerCase()
+    );
+
+    if (duplicate) return false;
+
+    roles.push(clean);
+    persist();
+    refreshAllSelects();
+
+    return true;
   }
 
   function addRow(data = {}) {
     const template = $("roleRowTemplate");
+    const root = $("roleRows");
 
-    if (!template) return;
+    if (!template || !root) return;
 
     const node = template.content.firstElementChild.cloneNode(true);
     const select = node.querySelector(".row-role");
 
     refreshRoleSelect(select, data.role || roles[0] || "");
 
-    // Compatibilidad con datos antiguos que guardaban una sola hora.
-    node.querySelector(".row-start-time").value =
-      data.startTime || data.time || "";
+    const start = node.querySelector(".row-start-time");
+    const end = node.querySelector(".row-end-time");
+    const person = node.querySelector(".row-person");
+    const sub = node.querySelector(".row-sub");
 
-    node.querySelector(".row-end-time").value =
-      data.endTime || "";
+    if (start) start.value = data.startTime || data.time || "";
+    if (end) end.value = data.endTime || "";
+    if (person) person.value = data.person || "";
+    if (sub) sub.value = data.sub || "";
 
-    node.querySelector(".row-person").value = data.person || "";
-    node.querySelector(".row-sub").value = data.sub || "";
-
-    node.querySelector(".remove-row").addEventListener("click", () => {
+    node.querySelector(".remove-row")?.addEventListener("click", () => {
       node.remove();
       numberRows();
     });
 
-    select.addEventListener("change", () => {
+    select?.addEventListener("change", () => {
       if (select.value !== "__add__") return;
 
-      const previous = select.value;
+      const previous = [...select.options]
+        .map((option) => option.value)
+        .find((value) => value !== "__add__") || "";
+
       const name = prompt("Nombre del nuevo rol:");
 
-      if (name && name.trim()) {
-        const clean = name.trim();
+      if (!name || !name.trim()) {
+        refreshRoleSelect(select, previous);
+        return;
+      }
 
-        if (roles.some((role) => role.toLowerCase() === clean.toLowerCase())) {
-          refreshRoleSelect(select, roles.find(
-            (role) => role.toLowerCase() === clean.toLowerCase()
-          ));
-          return;
-        }
+      const clean = name.trim();
+      const existing = roles.find(
+        (role) => role.toLowerCase() === clean.toLowerCase()
+      );
 
-        addRole(clean);
+      if (existing) {
+        refreshRoleSelect(select, existing);
+        return;
+      }
+
+      if (addRole(clean)) {
         refreshRoleSelect(select, clean);
       } else {
-        refreshRoleSelect(select, roles[0] || "");
+        refreshRoleSelect(select, previous);
       }
     });
 
-    $("roleRows").appendChild(node);
+    root.appendChild(node);
     numberRows();
   }
 
   function getRows() {
-    return [...$("roleRows").querySelectorAll(".role-row")].map((row) => ({
-      startTime: row.querySelector(".row-start-time").value,
-      endTime: row.querySelector(".row-end-time").value,
-      role: row.querySelector(".row-role").value === "__add__"
+    const root = $("roleRows");
+    if (!root) return [];
+
+    return [...root.querySelectorAll(".role-row")].map((row) => ({
+      startTime: row.querySelector(".row-start-time")?.value || "",
+      endTime: row.querySelector(".row-end-time")?.value || "",
+      role: row.querySelector(".row-role")?.value === "__add__"
         ? ""
-        : row.querySelector(".row-role").value,
-      person: row.querySelector(".row-person").value.trim(),
-      sub: row.querySelector(".row-sub").value.trim()
+        : row.querySelector(".row-role")?.value || "",
+      person: row.querySelector(".row-person")?.value.trim() || "",
+      sub: row.querySelector(".row-sub")?.value.trim() || ""
     }));
   }
 
   function setForm(data = {}) {
-    $("planName").value = data.name || "Planificación semanal";
-    $("planDate").value = data.date || today();
-    $("planTheme").value = data.theme || "";
-    $("roleRows").innerHTML = "";
+    if ($("planName")) {
+      $("planName").value = data.name || "Planificación semanal";
+    }
+
+    if ($("planDate")) $("planDate").value = data.date || today();
+    if ($("planTheme")) $("planTheme").value = data.theme || "";
+
+    if ($("roleRows")) $("roleRows").innerHTML = "";
 
     const rows = data.rows?.length
       ? data.rows
-      : [{ role: roles[0] || "", startTime: "", endTime: "" }];
+      : [{
+          role: roles[0] || "",
+          startTime: "",
+          endTime: "",
+          person: "",
+          sub: ""
+        }];
 
     rows.forEach(addRow);
 
-    $("editorTitle").textContent = data.name || "Nueva planificación";
+    if ($("editorTitle")) {
+      $("editorTitle").textContent = data.name || "Nueva planificación";
+    }
+
     showMessage("");
   }
 
   function collect() {
-    const name = $("planName").value.trim() || "Planificación semanal";
-    const date = $("planDate").value;
-    const theme = $("planTheme").value.trim();
+    const name = $("planName")?.value.trim() || "Planificación semanal";
+    const date = $("planDate")?.value || today();
+    const theme = $("planTheme")?.value.trim() || "";
 
     const rows = getRows().filter((row) =>
       row.role || row.person || row.startTime || row.endTime || row.sub
@@ -232,7 +300,7 @@
 
     if (!theme) {
       showMessage("Escriba el tema de la semana antes de continuar.");
-      $("planTheme").focus();
+      $("planTheme")?.focus();
       return null;
     }
 
@@ -251,7 +319,7 @@
     };
   }
 
-  // GUARDAR Y EDITAR
+  // GUARDAR PLANIFICACIONES Y PLANTILLAS
 
   function savePlan() {
     const data = collect();
@@ -270,7 +338,7 @@
 
     persist();
 
-    $("editorTitle").textContent = data.name;
+    if ($("editorTitle")) $("editorTitle").textContent = data.name;
     showMessage("Planificación guardada en este dispositivo.");
   }
 
@@ -280,7 +348,7 @@
 
     const template = {
       ...data,
-      id: currentId || newId(),
+      id: currentKind === "template" && currentId ? currentId : newId(),
       templateUpdatedAt: new Date().toISOString()
     };
 
@@ -326,7 +394,7 @@
     showView("editor");
   }
 
-  // PLANIFICACIONES Y PLANTILLAS GUARDADAS
+  // LISTAS DE PLANIFICACIONES Y PLANTILLAS
 
   function renderSaved() {
     renderSavedList(
@@ -426,28 +494,13 @@
     });
   }
 
-  // ADMINISTRAR CATÁLOGO DE ROLES
-
-  function addRole(name) {
-    const clean = name.trim();
-
-    if (!clean) return false;
-
-    if (roles.some((role) => role.toLowerCase() === clean.toLowerCase())) {
-      return false;
-    }
-
-    roles.push(clean);
-    persist();
-    refreshAllSelects();
-
-    return true;
-  }
+  // ADMINISTRAR ROLES: AÑADIR, EDITAR, GUARDAR Y ELIMINAR
 
   function refreshAllSelects() {
     document.querySelectorAll(".row-role").forEach((select) => {
-      const value = select.value;
-      refreshRoleSelect(select, value);
+      const current = select.value;
+      const selected = roles.includes(current) ? current : roles[0] || "";
+      refreshRoleSelect(select, selected);
     });
 
     renderCatalog();
@@ -459,14 +512,21 @@
 
     root.innerHTML = "";
 
+    if (!roles.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No hay roles registrados. Añada uno con el formulario.";
+      root.appendChild(empty);
+    }
+
     roles.forEach((role, index) => {
       const row = document.createElement("div");
       row.className = "catalog-item";
 
       const input = document.createElement("input");
       input.type = "text";
-      input.setAttribute("aria-label", "Nombre del rol");
       input.value = role;
+      input.setAttribute("aria-label", `Nombre del rol ${index + 1}`);
 
       const saveButton = document.createElement("button");
       saveButton.type = "button";
@@ -481,18 +541,39 @@
 
         if (!value) {
           alert("El nombre del rol no puede estar vacío.");
+          input.focus();
           return;
         }
 
-        if (roles.some((existing, i) =>
-          i !== index && existing.toLowerCase() === value.toLowerCase()
-        )) {
+        const duplicate = roles.some(
+          (existing, i) =>
+            i !== index && existing.toLowerCase() === value.toLowerCase()
+        );
+
+        if (duplicate) {
           alert("Ese rol ya existe.");
+          input.focus();
           return;
         }
 
         const old = roles[index];
+        if (old === value) {
+          alert("No hay cambios que guardar.");
+          return;
+        }
+
+        // Cambiar el nombre también actualiza los registros guardados.
+        function renameInRecords(records) {
+          records.forEach((record) => {
+            (record.rows || []).forEach((item) => {
+              if (item.role === old) item.role = value;
+            });
+          });
+        }
+
         roles[index] = value;
+        renameInRecords(plans);
+        renameInRecords(templates);
 
         document.querySelectorAll(".row-role").forEach((select) => {
           const selected = select.value === old ? value : select.value;
@@ -501,17 +582,27 @@
 
         persist();
         renderCatalog();
+        showMessage(`El rol "${old}" se cambió a "${value}".`);
       });
 
       deleteButton.addEventListener("click", () => {
         if (!confirm(
-          `¿Eliminar el rol "${role}" del catálogo? Las planificaciones guardadas no se alterarán.`
+          `¿Eliminar "${role}" del catálogo?\n\nEl rol dejará de estar disponible para nuevas asignaciones. Las planificaciones ya guardadas conservarán sus datos.`
         )) return;
 
         roles = roles.filter((_, i) => i !== index);
 
+        // Si el rol eliminado estaba seleccionado en el editor,
+        // se selecciona otro rol disponible.
+        document.querySelectorAll(".row-role").forEach((select) => {
+          const selected = select.value;
+          const next = roles.includes(selected) ? selected : roles[0] || "";
+          refreshRoleSelect(select, next);
+        });
+
         persist();
-        refreshAllSelects();
+        renderCatalog();
+        showMessage(`Rol "${role}" eliminado del catálogo.`);
       });
 
       row.append(input, saveButton, deleteButton);
@@ -519,13 +610,12 @@
     });
   }
 
-  // FECHAS
+  // FECHAS Y HORAS
 
   function formatDate(date) {
     if (!date) return "Fecha pendiente";
 
     const parsed = new Date(`${date}T12:00:00`);
-
     if (Number.isNaN(parsed.getTime())) return "";
 
     return parsed.toLocaleDateString("es-GT", {
@@ -550,7 +640,7 @@
     return `${hours}:${minutes} ${suffix}`;
   }
 
-  // GENERAR PDF MEDIANTE IMPRESIÓN DEL NAVEGADOR
+  // GENERAR PDF CON LOGO
 
   function generatePDF() {
     const data = collect();
@@ -587,9 +677,15 @@
         </tr>`;
     }).join("");
 
-    const logo = logoData
-      ? `<img class="logo" src="${logoData}" alt="Logo Hope Group">`
-      : "";
+    // Utiliza el logo guardado, o el archivo PNG de recursos.
+    const logoSrc = getLogoSource();
+    const logo = `
+      <img
+        class="logo"
+        src="${esc(logoSrc)}"
+        alt="Logo Hope Group"
+        onerror="this.style.display='none'"
+      >`;
 
     const html = `<!doctype html>
 <html lang="es">
@@ -622,6 +718,8 @@
   }
 
   .logo {
+    display: block;
+    flex: 0 0 68px;
     width: 68px;
     height: 68px;
     object-fit: contain;
@@ -768,15 +866,15 @@
     window.addEventListener("load", () => {
       const images = Array.from(document.images);
 
-      Promise.all(images.map(image => {
+      Promise.all(images.map((image) => {
         if (image.complete) return Promise.resolve();
 
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
           image.onload = resolve;
           image.onerror = resolve;
         });
       })).then(() => {
-        setTimeout(() => window.print(), 300);
+        setTimeout(() => window.print(), 400);
       });
     });
   <\/script>
@@ -812,7 +910,7 @@
     event.preventDefault();
 
     const input = $("newRoleName");
-    const name = input.value.trim();
+    const name = input?.value.trim();
 
     if (!name) return;
 
@@ -822,9 +920,9 @@
     }
 
     input.value = "";
+    showMessage(`Rol "${name}" añadido correctamente.`);
   });
 
-  // Opcional: solo se activa si se añade logoUpload al HTML.
   $("logoUpload")?.addEventListener("change", (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -837,15 +935,14 @@
     const reader = new FileReader();
 
     reader.onload = () => {
-      logoData = reader.result;
-
       try {
-        localStorage.setItem(STORAGE.logo, logoData);
+        localStorage.setItem(STORAGE.logo, reader.result);
+        logoData = reader.result;
         updateLogo();
         alert("Logo guardado en este navegador.");
       } catch {
         alert(
-          "La imagen es demasiado grande para guardarse en el almacenamiento del navegador. Utilice una imagen más pequeña."
+          "La imagen es demasiado grande para guardarse en el navegador. Utilice una imagen más pequeña."
         );
       }
     };
