@@ -642,6 +642,7 @@
 
   // GENERAR PDF CON LOGO
 
+  
   function generatePDF() {
     const data = collect();
     if (!data) return;
@@ -669,16 +670,27 @@
 
       return `
         <tr>
-          <td class="num">${index + 1}</td>
-          <td class="time">${esc(time)}</td>
-          <td>${esc(row.role || "—")}</td>
-          <td>${esc(row.person || "Por asignar")}</td>
-          ${hasSub ? `<td>${esc(row.sub || "—")}</td>` : ""}
+          <td class="num-cell">
+            <span class="number-pill">${String(index + 1).padStart(2, "0")}</span>
+          </td>
+          <td class="time-cell">
+            <span class="time-pill">${esc(time)}</span>
+          </td>
+          <td class="role-cell">
+            <span class="role-name">${esc(row.role || "Sin asignar")}</span>
+          </td>
+          <td class="person-cell">
+            <span class="person-name">${esc(row.person || "Por asignar")}</span>
+          </td>
+          ${hasSub ? `
+            <td class="sub-cell">
+              <span class="sub-name">${esc(row.sub || "—")}</span>
+            </td>` : ""}
         </tr>`;
     }).join("");
 
-    // Utiliza el logo guardado, o el archivo PNG de recursos.
     const logoSrc = getLogoSource();
+
     const logo = `
       <img
         class="logo"
@@ -693,20 +705,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(data.name)} - Hope Group</title>
+
 <style>
   @page {
     size: A4 portrait;
     margin: 14mm;
   }
 
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
 
   body {
     font-family: Arial, Helvetica, sans-serif;
-    color: #222;
+    color: #242424;
     margin: 0;
     font-size: 10pt;
   }
+
+  /* ENCABEZADO: SE CONSERVA EL DISEÑO ORIGINAL */
 
   .header {
     display: flex;
@@ -745,6 +762,8 @@
     margin: 0;
   }
 
+  /* TEMA: SE CONSERVA EL DISEÑO ORIGINAL */
+
   .theme {
     border: 1px solid #ddd;
     padding: 12px 14px;
@@ -770,45 +789,132 @@
     overflow-wrap: anywhere;
   }
 
-  table {
+  /* TABLA: NUEVO DISEÑO MINIMALISTA */
+
+  .schedule-table {
     width: 100%;
-    border-collapse: collapse;
     table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0 5px;
+    font-size: 9pt;
   }
 
-  thead { display: table-header-group; }
+  .schedule-table thead {
+    display: table-header-group;
+  }
 
-  tr {
+  .schedule-table tr {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  th {
-    background: #ededed;
+  .schedule-table th {
+    background: #292929;
+    color: #fff;
     text-align: left;
-    font-size: 8pt;
+    font-size: 7.5pt;
+    font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: .3px;
+    letter-spacing: 0.7px;
+    padding: 12px 8px;
+    border: none;
   }
 
-  th, td {
-    border: 1px solid #d8d8d8;
-    padding: 8px 7px;
+  .schedule-table th:first-child {
+    border-radius: 7px 0 0 7px;
+    text-align: center;
+  }
+
+  .schedule-table th:last-child {
+    border-radius: 0 7px 7px 0;
+  }
+
+  .schedule-table td {
+    background: #f6f6f6;
+    padding: 11px 8px;
     vertical-align: middle;
     overflow-wrap: anywhere;
+    border-top: 1px solid #ededed;
+    border-bottom: 1px solid #ededed;
   }
 
-  tbody tr:nth-child(even) { background: #fafafa; }
+  .schedule-table tbody tr:nth-child(even) td {
+    background: #fff;
+  }
 
-  .num {
-    width: 30px;
+  .schedule-table tbody tr td:first-child {
+    border-left: 1px solid #ededed;
+    border-radius: 7px 0 0 7px;
+  }
+
+  .schedule-table tbody tr td:last-child {
+    border-right: 1px solid #ededed;
+    border-radius: 0 7px 7px 0;
+  }
+
+  /* NÚMERO DE ORDEN */
+
+  .num-cell {
+    width: 38px;
     text-align: center;
-    color: #777;
   }
 
-  .time {
-    width: ${hasEndTime ? "125px" : "90px"};
+  .number-pill {
+    display: inline-block;
+    min-width: 25px;
+    padding: 5px 3px;
+    border-radius: 5px;
+    background: #e8e8e8;
+    color: #393939;
+    font-size: 8pt;
+    font-weight: bold;
+    text-align: center;
   }
+
+  /* HORARIOS */
+
+  .time-cell {
+    width: ${hasEndTime ? "112px" : "88px"};
+  }
+
+  .time-pill {
+    display: inline-block;
+    color: #292929;
+    font-size: 8.5pt;
+    font-weight: bold;
+    line-height: 1.5;
+    white-space: normal;
+  }
+
+  /* ROLES */
+
+  .role-cell {
+    padding-left: 10px !important;
+  }
+
+  .role-name {
+    display: block;
+    padding-left: 8px;
+    border-left: 3px solid #383838;
+    font-weight: bold;
+    line-height: 1.45;
+  }
+
+  /* RESPONSABLES Y SUPLENTES */
+
+  .person-name {
+    display: block;
+    line-height: 1.45;
+  }
+
+  .sub-name {
+    display: block;
+    color: #666;
+    font-size: 8.5pt;
+    line-height: 1.45;
+  }
+
+  /* PIE: SE CONSERVA EL DISEÑO ORIGINAL */
 
   .footer {
     margin-top: 22px;
@@ -826,9 +932,17 @@
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+
+    .schedule-table th,
+    .schedule-table td,
+    .number-pill {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
   }
 </style>
 </head>
+
 <body>
   <header class="header">
     ${logo}
@@ -844,11 +958,11 @@
     <p class="theme-text">${esc(data.theme)}</p>
   </section>
 
-  <table>
+  <table class="schedule-table">
     <thead>
       <tr>
-        <th class="num">N.º</th>
-        <th class="time">Horario</th>
+        <th class="num-cell">N.º</th>
+        <th class="time-cell">Horario</th>
         <th>Rol</th>
         <th>Responsable</th>
         ${hasSub ? "<th>Suplente</th>" : ""}
