@@ -10,41 +10,71 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <img id="brandLogo" src="recursos/logo.PNG" alt="Logo Hope Group" onerror="this.style.display='none'">
-      <div><p class="eyebrow">HOPE GROUP</p><h1>Planificaciones</h1></div>
+      <div>
+        <p class="eyebrow">HOPE GROUP</p>
+        <h1>Planificaciones</h1>
+      </div>
     </div>
     <div class="top-actions">
-      <label class="button button-quiet upload-label" for="logoUpload">Cargar logo</label>
-      <input id="logoUpload" type="file" accept="image/*" hidden>
       <button id="newPlanBtn" class="button button-dark">＋ Nueva planificación</button>
     </div>
   </header>
-
   <main class="layout">
     <aside class="sidebar">
       <button class="nav-button active" data-view="editor">✎ <span>Crear planificación</span></button>
       <button class="nav-button" data-view="saved">▤ <span>Planificaciones guardadas</span></button>
       <button class="nav-button" data-view="roles">☷ <span>Administrar roles</span></button>
-      <div class="sidebar-note"><strong>Privado y local</strong><p>Los datos se guardan en este navegador. Exporte los PDF y conserve una copia de seguridad si cambia de dispositivo.</p></div>
+      <div class="sidebar-note">
+        <strong>Privado y local</strong>
+        <p>Los datos se guardan en este navegador. Exporte los PDF y conserve una copia de seguridad si cambia de dispositivo.</p>
+      </div>
     </aside>
-
     <section id="editorView" class="view">
-      <div class="page-heading"><div><p class="eyebrow">PLAN SEMANAL</p><h2 id="editorTitle">Nueva planificación</h2><p class="subheading">Organice los roles, responsables y horarios del grupo.</p></div><span class="status-pill">Borrador</span></div>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">PLAN SEMANAL</p>
+          <h2 id="editorTitle">Nueva planificación</h2>
+          <p class="subheading">Organice los roles, responsables y horarios del grupo.</p>
+        </div>
+        <span class="status-pill">Borrador</span>
+      </div>
       <div class="panel">
-        <div class="panel-heading"><span class="step">01</span><div><h3>Información general</h3><p>Estos datos aparecerán en el PDF.</p></div></div>
+        <div class="panel-heading">
+          <span class="step">01</span>
+          <div>
+            <h3>Información general</h3>
+            <p>Estos datos aparecerán en el PDF.</p>
+          </div>
+        </div>
         <div class="field-grid">
-          <label class="field"><span>Nombre de la planificación</span><input id="planName" placeholder="Ej. Reunión semanal"></label>
-          <label class="field"><span>Fecha de la reunión</span><input id="planDate" type="date"></label>
-          <label class="field full"><span>Tema de la semana <b class="required">*</b></span><textarea id="planTheme" rows="2" placeholder="Escriba el tema de esta semana"></textarea></label>
+          <label class="field">
+            <span>Nombre de la planificación</span>
+            <input id="planName" placeholder="Ej. Reunión semanal">
+          </label>
+          <label class="field">
+            <span>Fecha de la reunión</span>
+            <input id="planDate" type="date">
+          </label>
+          <label class="field full">
+            <span>Tema de la semana <b class="required">*</b></span>
+            <textarea id="planTheme" rows="2" placeholder="Escriba el tema de esta semana"></textarea>
+          </label>
         </div>
       </div>
-
       <div class="panel">
-        <div class="panel-heading spread"><div class="heading-left"><span class="step">02</span><div><h3>Programa de roles</h3><p>Configure la hora y las personas para cada actividad.</p></div></div><button id="addRoleRowBtn" class="button button-outline">＋ Añadir rol</button></div>
+        <div class="panel-heading spread">
+          <div class="heading-left">
+            <span class="step">02</span>
+            <div>
+              <h3>Programa de roles</h3>
+              <p>Configure los horarios y las personas para cada actividad.</p>
+            </div>
+          </div>
+          <button id="addRoleRowBtn" class="button button-outline">＋ Añadir rol</button>
+        </div>
         <div id="roleRows" class="role-rows"></div>
         <p class="hint">El suplente solo aparecerá en el PDF si escribe un nombre. Puede dejarlo vacío si no corresponde.</p>
       </div>
-
       <div class="editor-actions">
         <button id="savePlanBtn" class="button button-outline">Guardar planificación</button>
         <button id="saveTemplateBtn" class="button button-outline">Guardar como plantilla</button>
@@ -52,39 +82,92 @@
       </div>
       <p id="editorMessage" class="message" role="status"></p>
     </section>
-
     <section id="savedView" class="view hidden">
-      <div class="page-heading"><div><p class="eyebrow">ARCHIVO</p><h2>Planificaciones guardadas</h2><p class="subheading">Abra una planificación anterior o cree una nueva a partir de una plantilla.</p></div></div>
-      <div class="panel"><div class="panel-heading"><span class="step">↻</span><div><h3>Plantillas reutilizables</h3><p>Conservan los roles y el orden; podrá cambiar tema, fecha, horarios y responsables.</p></div></div><div id="templatesList" class="saved-list"></div></div>
-      <div class="panel"><div class="panel-heading"><span class="step">▤</span><div><h3>Planificaciones</h3><p>Sus documentos guardados en este dispositivo.</p></div></div><div id="plansList" class="saved-list"></div></div>
-    </section>
-
-    <section id="rolesView" class="view hidden">
-      <div class="page-heading"><div><p class="eyebrow">CONFIGURACIÓN</p><h2>Administrar roles</h2><p class="subheading">Mantenga una lista de roles para agregarlos rápidamente a cada planificación.</p></div></div>
-      <div class="panel">
-        <div class="panel-heading"><span class="step">03</span><div><h3>Catálogo de roles</h3><p>Puede añadir, cambiar el nombre o eliminar roles.</p></div></div>
-        <form id="roleForm" class="inline-form"><label class="field"><span>Nombre del nuevo rol</span><input id="newRoleName" placeholder="Ej. Oración final" required></label><button class="button button-dark" type="submit">Añadir rol</button></form>
-        <div id="roleCatalog" class="role-catalog"></div>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">ARCHIVO</p>
+          <h2>Planificaciones guardadas</h2>
+          <p class="subheading">Abra una planificación anterior o cree una nueva a partir de una plantilla.</p>
+        </div>
       </div>
       <div class="panel">
-        <div class="panel-heading"><span class="step">i</span><div><h3>Logo del PDF</h3><p>El programa intentará cargar <code>recursos/logo.png</code>. También puede usar “Cargar logo” para previsualizarlo y guardarlo en este navegador.</p></div></div>
-        <p class="hint">Para usar el logo como archivo del proyecto, coloque su imagen en la carpeta <code>recursos</code> y nómbrela <code>logo.png</code>. Si su logo tiene otro formato, ajuste la ruta en el archivo index.html o use el botón Cargar logo.</p>
+        <div class="panel-heading">
+          <span class="step">↻</span>
+          <div>
+            <h3>Plantillas reutilizables</h3>
+            <p>Conservan los roles y el orden; podrá cambiar tema, fecha, horarios y responsables.</p>
+          </div>
+        </div>
+        <div id="templatesList" class="saved-list"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-heading">
+          <span class="step">▤</span>
+          <div>
+            <h3>Planificaciones</h3>
+            <p>Sus documentos guardados en este dispositivo.</p>
+          </div>
+        </div>
+        <div id="plansList" class="saved-list"></div>
+      </div>
+    </section>
+    <section id="rolesView" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">CONFIGURACIÓN</p>
+          <h2>Administrar roles</h2>
+          <p class="subheading">Personalice la lista de actividades de Hope Group.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-heading">
+          <span class="step">03</span>
+          <div>
+            <h3>Catálogo de roles</h3>
+            <p>Añada roles nuevos, cambie sus nombres o elimine los que ya no utilice.</p>
+          </div>
+        </div>
+        <form id="roleForm" class="inline-form">
+          <label class="field">
+            <span>Nombre del nuevo rol</span>
+            <input id="newRoleName" placeholder="Ej. Oración final" required>
+          </label>
+          <button class="button button-dark" type="submit">＋ Añadir rol</button>
+        </form>
+        <div id="roleCatalog" class="role-catalog"></div>
       </div>
     </section>
   </main>
-
   <template id="roleRowTemplate">
     <article class="role-row">
-      <div class="row-top"><span class="row-number"></span><button type="button" class="remove-row" aria-label="Quitar rol">×</button></div>
+      <div class="row-top">
+        <span class="row-number"></span>
+        <button type="button" class="remove-row" aria-label="Quitar rol">×</button>
+      </div>
       <div class="role-fields">
-        <label class="field"><span>Hora</span><input class="row-time" type="time"></label>
-        <label class="field"><span>Rol</span><select class="row-role"></select></label>
-        <label class="field"><span>Persona responsable</span><input class="row-person" placeholder="Nombre completo"></label>
-        <label class="field"><span>Suplente (opcional)</span><input class="row-sub" placeholder="Solo si aplica"></label>
+        <label class="field">
+          <span>Hora de inicio</span>
+          <input class="row-start-time" type="time">
+        </label>
+        <label class="field">
+          <span>Hora de fin</span>
+          <input class="row-end-time" type="time">
+        </label>
+        <label class="field">
+          <span>Rol</span>
+          <select class="row-role"></select>
+        </label>
+        <label class="field">
+          <span>Persona responsable</span>
+          <input class="row-person" placeholder="Nombre completo">
+        </label>
+        <label class="field">
+          <span>Suplente (opcional)</span>
+          <input class="row-sub" placeholder="Solo si aplica">
+        </label>
       </div>
     </article>
   </template>
-
   <script src="app.js"></script>
 </body>
 </html>
